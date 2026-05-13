@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1f1f1f" media="(prefers-color-scheme: dark)">
+  <title>Push Relay</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #202124;
+      --fg-muted: #5f6368;
+      --body-fg: #3c4043;
+      --divider: #e8eaed;
+      --surface-2: #f1f3f4;
+      --accent: #1a73e8;
+      --ok: #1a7f37;
+      --err: #b00020;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1f1f1f;
+        --fg: #e8eaed;
+        --fg-muted: #9aa0a6;
+        --body-fg: #c4c7c5;
+        --divider: #3c4043;
+        --surface-2: #2d2e30;
+        --accent: #8ab4f8;
+        --ok: #81c995;
+        --err: #f28b82;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { background: var(--bg); }
+    body {
+      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem;
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.5rem; font-weight: 500; margin: 0; letter-spacing: -0.01em; }
+    a { color: var(--accent); }
+
+    /* Detail view */
+    #detail .header { display: flex; align-items: center; gap: 0.75rem; }
+    #detail img.icon { width: 32px; height: 32px; border-radius: 6px; flex: none; }
+    #d-body {
+      margin: 1rem 0 0;
+      font-size: 1rem;
+      color: var(--body-fg);
+      white-space: pre-line;
+      word-wrap: break-word;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 7rem 1fr;
+      column-gap: 1rem;
+      row-gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--divider);
+      font-size: 0.9rem;
+    }
+    .meta .k { color: var(--fg-muted); }
+    .meta .v { color: var(--fg); word-break: break-word; }
+    #detail .src-line { color: var(--fg-muted); font-size: 0.9rem; word-break: break-word; }
+    #detail h1 { margin-top: 0.25rem; }
+
+    /* Subscribe view */
+    #subscribe p { margin: 0.75rem 0; color: var(--body-fg); }
+    button {
+      font: inherit;
+      font-size: 0.95rem;
+      padding: 0.55rem 1.1rem;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 999px;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    pre {
+      background: var(--surface-2);
+      color: var(--fg);
+      padding: 0.75rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-size: 0.85rem;
+    }
+    #status { padding: 0.5rem 0; color: var(--fg-muted); min-height: 1.4em; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .hint { color: var(--fg-muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <section id="detail" hidden>
+    <div class="header">
+      <img id="d-icon" class="icon" alt="" hidden>
+      <span id="d-source-line" class="src-line"></span>
+    </div>
+    <h1 id="d-title"></h1>
+    <p id="d-body"></p>
+    <div class="meta">
+      <span class="k">Sent</span>     <span class="v" id="d-sent">—</span>
+      <span class="k">Received</span> <span class="v" id="d-received">—</span>
+    </div>
+  </section>
+  <section id="subscribe">
+    <h1>Push Relay</h1>
+    <p>Subscribe this device to receive notifications relayed from a sender.</p>
+    <p>
+      <button id="enable">Enable notifications</button>
+      <button id="copy" disabled>Copy subscription</button>
+    </p>
+    <div id="status"></div>
+    <p class="hint">After tapping Enable, copy the subscription JSON below and send it to the sender PC. On the PC run <code>tools/add-sub.py</code>; the JSON will be read from clipboard.</p>
+    <pre id="sub">(subscribe first)</pre>
+  </section>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

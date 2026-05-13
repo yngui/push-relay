@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+push_relay/__init__.py
+push_relay/config.py
+push_relay/send.py
+push_relay.egg-info/PKG-INFO
+push_relay.egg-info/SOURCES.txt
+push_relay.egg-info/dependency_links.txt
+push_relay.egg-info/requires.txt
+push_relay.egg-info/top_level.txt

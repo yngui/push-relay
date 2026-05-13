@@ -1,0 +1,5 @@
+cryptography>=42
+requests>=2.31
+
+[:sys_platform == "win32"]
+pywin32>=306

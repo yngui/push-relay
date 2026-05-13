@@ -1,0 +1,8 @@
+# Windows toast notifications (WinRT projection)
+winsdk>=1.0.0b10
+
+# DPAPI
+pywin32>=306
+
+# Shared push_relay package (installed editable from repo root)
+# (cryptography + requests come transitively from push_relay)
