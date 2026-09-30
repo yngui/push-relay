@@ -24,6 +24,8 @@ from push_relay import load_subs, load_vapid, send_web_push, state_dir
 # ---- Configuration --------------------------------------------------------
 CLIENT_NAME = "windows-toast"
 APP_REGEX = re.compile(r"^Visual Studio Code( - Insiders)?$")
+APP_AUMID = "Microsoft.VisualStudioCode"
+BLANK_APP_TITLE_REGEX = re.compile(r"^(?:Chat|Session): .+")
 BODY_REGEX: re.Pattern[str] | None = None
 POLL_INTERVAL_SEC = 2
 RATE_MAX_PER_WINDOW = 10
@@ -57,6 +59,14 @@ def resolve_icon(aumid: str, app: str) -> str | None:
         if pat.match(app or ""):
             return path
     return None
+
+
+def is_target_app(app: str, aumid: str, title: str) -> bool:
+    return bool(
+        APP_REGEX.match(app)
+        or aumid == APP_AUMID
+        or (not app and not aumid and BLANK_APP_TITLE_REGEX.match(title))
+    )
 
 DIR = state_dir(CLIENT_NAME)
 DIR.mkdir(parents=True, exist_ok=True)
@@ -270,9 +280,13 @@ async def main() -> int:
                 app = n.app_info.display_info.display_name or ""
             except Exception:
                 app = ""
+            try:
+                aumid = n.app_info.app_user_model_id or ""
+            except Exception:
+                aumid = ""
             title, body = extract_text(n, known)
-            log.info("SEEN id=%d app=%r title=%r", nid, app, title[:60])
-            if not APP_REGEX.match(app):
+            log.info("SEEN id=%d app=%r aumid=%r title=%r", nid, app, aumid, title[:60])
+            if not is_target_app(app, aumid, title):
                 continue
             if BODY_REGEX and not BODY_REGEX.search(f"{title}\n{body}"):
                 continue
@@ -286,10 +300,6 @@ async def main() -> int:
                 continue
             push_times.append(now)
 
-            try:
-                aumid = n.app_info.app_user_model_id or ""
-            except Exception:
-                aumid = ""
             icon = resolve_icon(aumid, app)
             log.info("MATCH id=%d app=%s title=%s icon=%s", nid, app, title, icon or "-")
             write_notify_log(n, app, title, body)
