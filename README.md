@@ -46,7 +46,7 @@ Per-machine state lives at `~/.push-relay/`:
 ~/.push-relay/
   vapid.json.dpapi         # shared by all local clients
   windows-toast/
-    venv/                  # client venv with push_relay installed editable
+    venv/                  # self-contained client venv with push_relay installed
     windows_toast.py       # snapshot of the client script
     subs.json              # array of {endpoint, keys, label, added}
     listener.log
@@ -106,7 +106,10 @@ pwsh -File .\clients\windows-toast\install.ps1
 
 This:
 - Creates `~/.push-relay/windows-toast/venv/`.
-- Installs `push_relay` (editable from the repo) and the WinRT projection.
+- Installs a non-editable copy of `push_relay` and the WinRT projection, preserving
+  satisfied dependency versions. Moving the checkout does not break the client.
+- Stops on installation errors and verifies isolated imports before replacing
+  the listener snapshot or scheduled task.
 - Snapshot-copies the client script.
 - Registers Scheduled Task `PushRelay-WindowsToast` (logon, hidden).
 - Disables any pre-existing `ToastPushListener` task (does not delete).
@@ -214,6 +217,11 @@ header.
 
 ## Troubleshooting
 
+- **Listener exits without a new startup log after moving the checkout** — older
+  clients used an editable package tied to the checkout's original path. Run
+  `clients/windows-toast/install.ps1` from the current checkout to replace it
+  with a self-contained installation. No VAPID rotation or phone re-subscription
+  is needed for this failure.
 - **`Push disabled: VAPID load failed`** — run `tools/new-vapid.py` (or copy
   an existing `vapid.json.dpapi` from another machine — it won't decrypt
   unless you're the same Windows user).

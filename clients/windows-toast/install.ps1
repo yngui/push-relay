@@ -43,9 +43,13 @@ $venvPy = Join-Path $venv 'Scripts\python.exe'
 if (-not (Test-Path $venvPy)) { throw "venv python not found at $venvPy" }
 
 Write-Host "Installing dependencies..."
-& $venvPy -m pip install --quiet --upgrade pip
-& $venvPy -m pip install --quiet -e $repo
-& $venvPy -m pip install --quiet -r (Join-Path $PSScriptRoot 'requirements.txt')
+& $venvPy -m pip install --quiet --no-deps --force-reinstall $repo
+if ($LASTEXITCODE -ne 0) { throw "push_relay installation failed" }
+& $venvPy -m pip install --quiet push-relay -r (Join-Path $PSScriptRoot 'requirements.txt')
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed" }
+
+& $venvPy -I -B -c "from pathlib import Path; import sysconfig; import push_relay; from winsdk.windows.ui.notifications.management import UserNotificationListener, UserNotificationListenerAccessStatus; from winsdk.windows.ui.notifications import NotificationKinds, KnownNotificationBindings; assert Path(push_relay.__file__).resolve().is_relative_to(Path(sysconfig.get_path('purelib')).resolve()), 'push_relay must be installed in the client venv'; print('Installed runtime preflight passed')"
+if ($LASTEXITCODE -ne 0) { throw "Installed runtime preflight failed" }
 
 # Snapshot the client script.
 Copy-Item (Join-Path $PSScriptRoot 'windows_toast.py') (Join-Path $dir 'windows_toast.py') -Force

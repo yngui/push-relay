@@ -43,8 +43,7 @@ APP_ICON_AUMID: dict[str, str] = {
     "Microsoft.VisualStudioCode": "icons/apps/vscode.png",
 }
 APP_ICON_DISPLAY: list[tuple[re.Pattern[str], str]] = [
-    # (re.compile(r"^Visual Studio Code$"), "icons/apps/vscode.png"),
-    # (re.compile(r"^Visual Studio Code - Insiders$"), "icons/apps/vscode-insiders.png"),
+    (re.compile(r"^Visual Studio Code(?: - Insiders)?$"), "icons/apps/vscode.png"),
 ]
 
 # Encrypted payload ceiling is 4078 (push_relay.send). Leave headroom for
