@@ -122,7 +122,10 @@ Get-Content "$env:USERPROFILE\.push-relay\windows-toast\listener.log" -Tail 5
 ```
 
 To customize the app filter, edit `clients/windows-toast/windows_toast.py`
-(`APP_REGEX`, `BODY_REGEX`, rate limit) then re-run `install.ps1`.
+(`APP_REGEX`, `VS_CODE_AUMID_REGEX`, `BODY_REGEX`, rate limit) then re-run
+`install.ps1`. The default matches `Microsoft.VisualStudioCode` and its
+well-formed dot-separated variants, case-insensitively, even when Windows
+leaves the display name blank. It does not match lookalike prefixes.
 
 ## Subscribe a phone
 
@@ -148,7 +151,8 @@ full payload (icon + source line, title, body, sent/received timestamps).
 Notifications can carry an app-specific icon shown by the phone. Icons are
 committed to `pwa/icons/apps/<slug>.png` and referenced from the sender's
 mapping (`APP_ICON_AUMID` / `APP_ICON_DISPLAY` in
-`clients/windows-toast/windows_toast.py`).
+`clients/windows-toast/windows_toast.py`). VS Code namespace matches use the
+existing VS Code icon unless an exact AUMID override is configured.
 
 To add one:
 
@@ -158,9 +162,10 @@ To add one:
   --out pwa\icons\apps\<slug>.png
 ```
 
-Paste the printed `APP_ICON_AUMID[...] = ...` line into
-`windows_toast.py`, commit + push, then restart the scheduled task. The
-phone picks up the new SW + asset on the next visit to the PWA.
+For public app IDs, paste the printed `APP_ICON_AUMID[...] = ...` line into
+`windows_toast.py`, commit + push, then restart the scheduled task. Keep
+private app IDs out of the repository. The phone picks up the new SW + asset
+on the next visit to the PWA.
 
 ## Verify end-to-end
 
@@ -229,9 +234,14 @@ header.
   (Chrome rotated the endpoint, user cleared site data, etc.). Re-subscribe
   the device and `add-sub.py` again. Edit `subs.json` to remove the dead
   entry.
-- **`SEEN id=...` but no `MATCH ...`** — `APP_REGEX` filtered the toast.
-- **Phone shows no notification but log says `ok=1`** — Android may have
-  delivered to the wrong PWA (e.g. an old subscription on a removed app).
+- **`SEEN id=...` but no `MATCH ...`** — check the app and body filters or
+  look for a `Rate-limited` entry. `SEEN` logs the AUMID category instead of
+  the raw ID: `aumid_kind=vscode` (namespace match), `aumid_kind=missing`,
+  or `aumid_kind=other`. Use the toast ID to correlate `SEEN` and `MATCH`.
+- **Phone shows no notification but log says `ok=1`** — the push service
+  accepted the request, but that does not confirm display on the intended
+  device. Android may have delivered to the wrong PWA (e.g. an old
+  subscription on a removed app).
   Long-press the dead PWA icon → uninstall, and revoke notification
   permission for any stale origins in Chrome site settings.
 - **Service worker won't update on phone** — close all tabs of the PWA;

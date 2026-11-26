@@ -24,7 +24,10 @@ from push_relay import load_subs, load_vapid, send_web_push, state_dir
 # ---- Configuration --------------------------------------------------------
 CLIENT_NAME = "windows-toast"
 APP_REGEX = re.compile(r"^Visual Studio Code( - Insiders)?$")
-APP_AUMID = "Microsoft.VisualStudioCode"
+VS_CODE_AUMID_REGEX = re.compile(
+    r"Microsoft\.VisualStudioCode(?:\.[a-z0-9][a-z0-9_-]*)*",
+    re.ASCII | re.IGNORECASE,
+)
 BLANK_APP_TITLE_REGEX = re.compile(r"^(?:Chat|Session): .+")
 BODY_REGEX: re.Pattern[str] | None = None
 POLL_INTERVAL_SEC = 2
@@ -37,13 +40,13 @@ URGENCY = "high"  # RFC 8030 max; wakes phone from Doze for prompt delivery.
 # pwa/icons/apps/<file>.png on GitHub Pages. Only set entries for icons that
 # actually exist in the repo; the SW falls back to the default icon when the
 # payload omits `icon`, so missing apps are safe. Keying preference:
-#   1) exact AUMID match (stable across locales)  -- APP_ICON_AUMID
-#   2) display-name regex fallback                -- APP_ICON_DISPLAY
-APP_ICON_AUMID: dict[str, str] = {
-    "Microsoft.VisualStudioCode": "icons/apps/vscode.png",
-}
+#   1) exact AUMID override                       -- APP_ICON_AUMID
+#   2) VS Code AUMID namespace                    -- VS_CODE_AUMID_REGEX
+#   3) display-name regex fallback                -- APP_ICON_DISPLAY
+VS_CODE_ICON = "icons/apps/vscode.png"
+APP_ICON_AUMID: dict[str, str] = {}
 APP_ICON_DISPLAY: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"^Visual Studio Code(?: - Insiders)?$"), "icons/apps/vscode.png"),
+    (re.compile(r"^Visual Studio Code(?: - Insiders)?$"), VS_CODE_ICON),
 ]
 
 # Encrypted payload ceiling is 4078 (push_relay.send). Leave headroom for
@@ -54,6 +57,8 @@ PAYLOAD_BUDGET_BYTES = 4000
 def resolve_icon(aumid: str, app: str) -> str | None:
     if aumid and aumid in APP_ICON_AUMID:
         return APP_ICON_AUMID[aumid]
+    if VS_CODE_AUMID_REGEX.fullmatch(aumid):
+        return VS_CODE_ICON
     for pat, path in APP_ICON_DISPLAY:
         if pat.match(app or ""):
             return path
@@ -63,7 +68,7 @@ def resolve_icon(aumid: str, app: str) -> str | None:
 def is_target_app(app: str, aumid: str, title: str) -> bool:
     return bool(
         APP_REGEX.match(app)
-        or aumid == APP_AUMID
+        or VS_CODE_AUMID_REGEX.fullmatch(aumid)
         or (not app and not aumid and BLANK_APP_TITLE_REGEX.match(title))
     )
 
@@ -79,6 +84,13 @@ log.setLevel(logging.INFO)
 _handler = RotatingFileHandler(LISTENER_LOG, maxBytes=512_000, backupCount=2, encoding="utf-8")
 _handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
 log.addHandler(_handler)
+
+
+def _log_seen(nid: int, app: str, aumid: str, title: str) -> None:
+    aumid_kind = "missing"
+    if aumid:
+        aumid_kind = "vscode" if VS_CODE_AUMID_REGEX.fullmatch(aumid) else "other"
+    log.info("SEEN id=%d app=%r aumid_kind=%s title=%r", nid, app, aumid_kind, title[:60])
 
 
 # ---- Seen-id persistence --------------------------------------------------
@@ -284,7 +296,7 @@ async def main() -> int:
             except Exception:
                 aumid = ""
             title, body = extract_text(n, known)
-            log.info("SEEN id=%d app=%r aumid=%r title=%r", nid, app, aumid, title[:60])
+            _log_seen(nid, app, aumid, title)
             if not is_target_app(app, aumid, title):
                 continue
             if BODY_REGEX and not BODY_REGEX.search(f"{title}\n{body}"):
